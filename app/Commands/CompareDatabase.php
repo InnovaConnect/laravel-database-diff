@@ -30,24 +30,41 @@ class CompareDatabase extends Command
     public function handle(): void
     {
         $this->line("Buscando bancos de dados disponíveis...");
-        $databases = DB::select("SHOW DATABASES");
 
+        $connections = config()->get('database.connections');
+        $connectionsKeys = array_keys($connections);
 
-        $availableDatabases = [];
+        $firstConnection = $this->choice("Selecione a primeira conexão com o banco de dados", $connectionsKeys);
 
-        foreach ($databases as $database) {
-            $availableDatabases[] = $database->Database;
+        $databasesFromFirstConnection = DB::connection($firstConnection)->select("SHOW DATABASES");
+
+        $availableDatabasesFromFirstConnection = [];
+
+        foreach ($databasesFromFirstConnection as $database) {
+            $availableDatabasesFromFirstConnection[] = $database->Database;
         }
 
-        $firstDatabase = $this->choice("Os seguintes bancos estão disponíveis: ", $availableDatabases);
-        $secondDatabase = $this->choice("Selecione por indíce o segundo banco para comparação com o primeiro", $availableDatabases);
+        $firstDatabase = $this->choice("Os seguintes bancos da conexão '$firstConnection' estão disponíveis: ", $availableDatabasesFromFirstConnection);
 
-        $databaseConfig = config()->get('database');
-        $connection = $databaseConfig['default'];
-        $connectionConfig = $databaseConfig['connections'][$connection];
-        $server = "{$connectionConfig['username']}:{$connectionConfig['password']}@{$connectionConfig['host']}:{$connectionConfig['port']}";
+        $secondConnection = $this->choice("Selecione a segunda conexão com o banco de dados", $connectionsKeys);
 
-        $command = "vendor/dbdiff/dbdiff/dbdiff server1.$firstDatabase:server2.$secondDatabase --server1=$server --server2=$server --output=$firstDatabase-$secondDatabase.sql";
+        $databasesFromSecondConnection = DB::connection($secondConnection)->select("SHOW DATABASES");
+
+        $availableDatabasesFromSecondConnection = [];
+
+        foreach ($databasesFromSecondConnection as $database) {
+            $availableDatabasesFromSecondConnection[] = $database->Database;
+        }
+
+        $secondDatabase = $this->choice("Os seguintes bancos da conexão '$secondConnection' estão disponíveis: ", $availableDatabasesFromSecondConnection);
+
+        $connectionConfig = $connections[$firstConnection];
+        $firstServer = "{$connectionConfig['username']}:{$connectionConfig['password']}@{$connectionConfig['host']}:{$connectionConfig['port']}";
+
+        $connectionConfig = $connections[$secondConnection];
+        $secondServer = "{$connectionConfig['username']}:{$connectionConfig['password']}@{$connectionConfig['host']}:{$connectionConfig['port']}";
+
+        $command = "vendor/dbdiff/dbdiff/dbdiff server1.$firstDatabase:server2.$secondDatabase --server1=$firstServer --server2=$secondServer --output=$firstDatabase-$secondDatabase.sql";
         $output = shell_exec($command);
         $this->line("Resposta após rodar o comando: ");
         $this->newLine();
