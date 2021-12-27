@@ -64,7 +64,7 @@ class CompareDatabase extends Command
         $connectionConfig = $connections[$secondConnection];
         $secondServer = "{$connectionConfig['username']}:{$connectionConfig['password']}@{$connectionConfig['host']}:{$connectionConfig['port']}";
 
-        $command = "vendor/dbdiff/dbdiff/dbdiff server1.$firstDatabase:server2.$secondDatabase --server1=$firstServer --server2=$secondServer --output=$firstDatabase-$secondDatabase.sql";
+        $command = "php ." . DIRECTORY_SEPARATOR . implode(DIRECTORY_SEPARATOR, ["vendor", "dbdiff", "dbdiff", "dbdiff"]) . " server1.$firstDatabase:server2.$secondDatabase --server1=$firstServer --server2=$secondServer --output=$firstDatabase-$secondDatabase.sql";
         $output = shell_exec($command);
         $this->line("Resposta após rodar o comando: ");
         $this->newLine();
